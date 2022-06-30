@@ -106,6 +106,12 @@ int dm9000_reset();
 
 void GetMACaddress (unsigned char *dev_addr);
 
+void SetMACaddress (unsigned char *dev_addr);
+
+void dm9000_dump_registers(void);
+
+unsigned char dm9000_reg_test(void); 
+
 int main(void)
 {
     /* Initialize the SAM system */
@@ -129,34 +135,55 @@ int main(void)
 	printf("MCK: %ld Hz\n",(int32_t) BOARD_MCK);
 	calibrate_delayus();
 	
-	
+	char readMAC[6]= {0x0};
+	char writeMAC[6]= {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
 	uint16_t eth_reg_val = 1;
     while (1)
     {
-		led0_on();
-		led1_on();
+		dm9000_dump_registers();
+		
 		dbgu_puts("Start register write\n");
 		dm9000_write_reg(0x10, 42);
+		
 		delayms(2000);
 		
-		led0_off();
-		led1_off();
 		dbgu_puts("Start register read\n");
 		eth_reg_val = dm9000_read_reg(0x10);
 		if(eth_reg_val == 42)
 			dbgu_puts("Correct Read\n");
 		else
 			dbgu_puts("False Read\n");
+			
 		delayms(1000);
 		dm9000_reset();
 		delayms(1000);
+		
 		eth_reg_val = dm9000_read_reg(0x29);
 		printf("Reg 0x29 has %d \n", eth_reg_val);
+		delayms(100);
 		if(eth_reg_val == 10)
 			dbgu_puts("Reset worked\n");
 		else
 			dbgu_puts("Reset didn't work\n");
+			
+		for(int i = 0; i < 6; ++i){
+			if(readMAC[i] != 0)
+				printf("MAC read buffer not 0 initialized\n");
+		}
 		
+		SetMACaddress(writeMAC);
+		delayms(1000);
+		GetMACaddress(readMAC);
+		
+		for(int i = 0; i < 6; ++i){
+			if(readMAC[i] != i+1)
+				printf("MAC read buffer has wrong values\n");
+		}
+		delayms(1000);
+		printf("MAC operation successful\n");
+		for(int i = 0; i < 6; ++i){
+			readMAC[i] = 0;
+		}
     }
 }
 
@@ -197,5 +224,59 @@ int dm9000_reset(){
 }
 
 void GetMACaddress (unsigned char *dev_addr){
+	dev_addr[0] = dm9000_read_reg(0x10);
+	dev_addr[1] = dm9000_read_reg(0x11);
+	dev_addr[2] = dm9000_read_reg(0x12);
+	dev_addr[3] = dm9000_read_reg(0x13);
+	dev_addr[4] = dm9000_read_reg(0x14);
+	dev_addr[5] = dm9000_read_reg(0x15);
+}
+
+void SetMACaddress (unsigned char *dev_addr){
+	dm9000_write_reg(0x10, dev_addr[0]);
+	dm9000_write_reg(0x11, dev_addr[1]);
+	dm9000_write_reg(0x12, dev_addr[2]);
+	dm9000_write_reg(0x13, dev_addr[3]);
+	dm9000_write_reg(0x14, dev_addr[4]);
+	dm9000_write_reg(0x15, dev_addr[5]);
+}
+
+void dm9000_dump_registers(void){
+	uint16_t i;
+	// registers continuous until 0x1F
+	for(i=0; i <= 0x1f; ++i){
+		printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	}
+	
+	// next block from 0x22 to 0x25
+	for(i=0x22; i < 0x26; ++i){
+		printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	}
+	
+	// next block from 0x28 to 0x2C
+	for(i=0x28; i < 0x2d; ++i){
+		printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	}
+	
+	i=0x2F;
+	printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	i=0xF0;
+	printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	i=0xF2;
+	printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	i=0xF4;
+	printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	i=0xF5;
+	printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	
+	// next block from 0x28 to 0x2C
+	for(i=0xfa; i <= 0xff; ++i){
+		printf("Reg %02x, %d\n", i, dm9000_read_reg(i));
+	}
+	
+}
+
+
+unsigned char dm9000_reg_test(void){
 	
 }
