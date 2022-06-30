@@ -184,6 +184,9 @@ int main(void)
 		for(int i = 0; i < 6; ++i){
 			readMAC[i] = 0;
 		}
+		
+		dm9000_reg_test();
+		printf("\n\n");
     }
 }
 
@@ -278,5 +281,30 @@ void dm9000_dump_registers(void){
 
 
 unsigned char dm9000_reg_test(void){
+	uint16_t test_read = 0;
+	dbgu_puts("Start register test\n");
 	
+	//write TX Control Register
+	dm9000_write_reg(0x02, 2);
+	delayms(1000);
+	test_read = dm9000_read_reg(0x02);
+	if(test_read != 2){
+		dbgu_puts("False Read in TX Control Reg\n");
+		return;
+	}
+	
+	// write MAC Registers
+	char readMAC[6]= {0x0};
+	char writeMAC[6]= {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+	SetMACaddress(writeMAC);
+	delayms(1000);
+	GetMACaddress(readMAC);
+	
+	for(int i = 0; i < 6; ++i){
+		if(readMAC[i] != i+1){
+			printf("MAC read buffer has wrong values\n");
+			return;
+		}
+	}
+	printf("Memory test successful\n");
 }
