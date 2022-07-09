@@ -1,5 +1,13 @@
 // MM
 
+#define LCD_RD_SETUP 1 //setup time for CS, RD: N clock cycles
+#define LCD_RD_PULSE 76 //active time for CS, RD: N clock cycles
+#define LCD_RD_CYCLE 152 //cycle time for CS, RD: N clock cycles
+
+#define LCD_WR_SETUP 1 //setup time for CS, WR: N clock cycles
+#define LCD_WR_PULSE 8 //active time for CS, WR: N clock cycles
+#define LCD_WR_CYCLE 15 //cycle time for CS, WR: N clock cycles
+
 #define LCD_DATA_ADDRESS 0x62000004 //adr A2 == CMD!
 #define LCD_CMD_ADDRESS 0x62000000
 #define LCD_SRAM_CHIP_SELECT 2

@@ -86,20 +86,58 @@ void led1_off (void)
 
 //---
 
-inline void COLOUR_GLCD_Write_address_data(uint8_t address, uint16_t data)
+void COLOUR_GLCD_Write_address_data(uint8_t address, uint16_t data)
 {
 	*(volatile uint16_t*)LCD_CMD_ADDRESS = address; //write address
 	asm volatile ("DMB");
 	*(volatile uint16_t*)LCD_DATA_ADDRESS = data; //write data
 }
 
-void COLOUR_GLCD_Instruction_Write() 
+void COLOUR_GLCD_Instruction_Write(uint8_t address) 
 {
-	
+	asm volatile ("DMB");
+	*(volatile uint16_t*)LCD_CMD_ADDRESS = address; //write address
+}
+
+void COLOUR_GLCD_Data_Write (uint16_t data)
+{
+	asm volatile ("DMB");
+	*(volatile uint16_t*)LCD_DATA_ADDRESS = data; //write data
+}
+
+// must return *something* but what?
+uint16_t COLOUR_GLCD_Data_Read() 
+{
+	return (volatile uint16_t*)LCD_DATA_ADDRESS;
 }
 
 void GLCD_Initialize(void) 
 {
+	/**********************************************************************************************/
+	// Initialize SRAM
+	
+	PMC_EnablePeripheral(ID_SMC);
+	MPU_Configure();
+	
+	SMC->SMC_CS_NUMBER[LCD_SRAM_CHIP_SELECT].SMC_SETUP = SMC_SETUP_NWE_SETUP(LCD_WR_SETUP)
+	| SMC_SETUP_NCS_WR_SETUP(LCD_WR_SETUP)
+	| SMC_SETUP_NRD_SETUP(LCD_RD_SETUP)
+	| SMC_SETUP_NCS_RD_SETUP(LCD_RD_SETUP);
+	
+	SMC->SMC_CS_NUMBER[LCD_SRAM_CHIP_SELECT].SMC_PULSE = SMC_PULSE_NWE_PULSE(LCD_WR_PULSE)
+	| SMC_PULSE_NCS_WR_PULSE(LCD_WR_PULSE)
+	| SMC_PULSE_NRD_PULSE(LCD_RD_PULSE)
+	| SMC_PULSE_NCS_RD_PULSE(LCD_RD_PULSE);
+	
+	SMC->SMC_CS_NUMBER[LCD_SRAM_CHIP_SELECT].SMC_CYCLE = SMC_CYCLE_NWE_CYCLE(LCD_WR_CYCLE)
+	| SMC_CYCLE_NRD_CYCLE(LCD_RD_CYCLE);
+	
+	SMC->SMC_CS_NUMBER[LCD_SRAM_CHIP_SELECT].SMC_MODE = (SMC_MODE_DBW_Msk &
+	SMC_MODE_DBW_16_BIT)
+	| (SMC_MODE_READ_MODE_Msk & SMC_MODE_READ_MODE )
+	| (SMC_MODE_WRITE_MODE_Msk & SMC_MODE_WRITE_MODE);
+	/**********************************************************************************************/
+	
 	COLOUR_GLCD_Instruction_Write(ILI9341_DISPLAY_POWER_CONTROL_B); //(0xcf);
 	COLOUR_GLCD_Data_Write(0x00);
 	COLOUR_GLCD_Data_Write(0xc1);
@@ -227,7 +265,7 @@ int main(void)
 	calibrate_delayus();
     while (1)
     {
-		led0_on();
+		/*led0_on();
 		delayms(300);
 		led1_on();
 		delayms(500);
@@ -236,6 +274,24 @@ int main(void)
 		delayms(800);
 		led1_off();
 		delayms(1000);
-		dbgu_puts("leds off!\n");		
+		dbgu_puts("leds off!\n");*/
+		
+		GLCD_Initialize();
+		
+#define DISPLAY_SSD1289_ID 0x8989
+#define DISPLAY_ILI9341_ID 0x009341
+		
+		COLOUR_GLCD_Instruction_Write(0);
+		
+		if (COLOUR_GLCD_Data_Read() == DISPLAY_SSD1289_ID)
+		dbgu_puts ("LCD Display SSD1289 found!\n");
+		uint32_t display_id = 0;
+		COLOUR_GLCD_Instruction_Write(0xd3);
+		display_id = COLOUR_GLCD_Data_Read() & 0x00ff;
+		display_id = COLOUR_GLCD_Data_Read() & 0x00ff;
+		display_id = (display_id <<8) | (COLOUR_GLCD_Data_Read() & 0x00ff);
+		display_id = (display_id <<8) | (COLOUR_GLCD_Data_Read() & 0x00ff);
+		if (display_id == DISPLAY_ILI9341_ID)
+		dbgu_puts ("LCD Display ILI9341 found!\n");		
     }
 }
