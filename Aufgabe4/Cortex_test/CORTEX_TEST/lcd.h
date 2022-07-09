@@ -1,5 +1,8 @@
 // MM
 
+#define DISPLAY_SSD1289_ID 0x8989
+#define DISPLAY_ILI9341_ID 0x009341
+
 #define LCD_RD_SETUP 1 //setup time for CS, RD: N clock cycles
 #define LCD_RD_PULSE 76 //active time for CS, RD: N clock cycles
 #define LCD_RD_CYCLE 152 //cycle time for CS, RD: N clock cycles
